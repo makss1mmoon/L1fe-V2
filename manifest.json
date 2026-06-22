@@ -1,0 +1,21 @@
+{
+  "name": "L1fe V2 - Stalker Tracker",
+  "short_name": "L1fe V2",
+  "description": "Post-apocalyptic habit and quest tracker",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1c221a",
+  "theme_color": "#2d3825",
+  "icons": [
+    {
+      "src": "stalker_avatar_pixel.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "stalker_avatar_pixel.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

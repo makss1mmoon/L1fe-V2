@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L1fe V2 - Stalker Tracker</title>
+    <!-- Google Fonts: Press Start 2P & Caveat for Notebook -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- PWA Manifest & Service Worker -->
+    <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('service-worker.js')
+            .then(reg => console.log('Service Worker registered!', reg))
+            .catch(err => console.error('Service Worker registration failed: ', err));
+        });
+      }
+    </script>
+</head>
+<body>
+    <!-- CRT Monitor scanlines overlay -->
+    <div class="crt-overlay"></div>
+
+    <div class="game-container">
+        <!-- Status Header Panel -->
+        <header class="status-panel pixel-border">
+            <div class="char-info">
+                <span class="char-name">НИКТО</span>
+                <span class="char-lvl" id="char-lvl">УР. 3</span>
+                <span class="day-indicator" id="day-indicator" style="margin-left: 10px; color: #a8a8a8;">День #1</span>
+            </div>
+            
+            <div class="status-bars">
+                <!-- HP Bar -->
+                <div class="bar-container">
+                    <span class="bar-label hp-label">HP</span>
+                    <div class="bar hp-bar">
+                        <div class="bar-fill" id="hp-fill" style="width: 100%;"></div>
+                        <span class="bar-value" id="hp-value">80/80</span>
+                    </div>
+                </div>
+                
+                <!-- XP Bar -->
+                <div class="bar-container">
+                    <span class="bar-label xp-label">XP</span>
+                    <div class="bar xp-bar">
+                        <div class="bar-fill" id="xp-fill" style="width: 0%;"></div>
+                        <span class="bar-value" id="xp-value">0/300</span>
+                    </div>
+                </div>
+
+                <!-- Water & Food Bars -->
+                <div class="bar-grid-resources">
+                    <div class="bar-container">
+                        <span class="bar-label water-label">💧</span>
+                        <div class="bar water-bar">
+                            <div class="bar-fill" id="water-fill" style="width: 100%;"></div>
+                            <span class="bar-value" id="water-value">100/100</span>
+                        </div>
+                    </div>
+                    <div class="bar-container">
+                        <span class="bar-label food-label">🍖</span>
+                        <div class="bar food-bar">
+                            <div class="bar-fill" id="food-fill" style="width: 100%;"></div>
+                            <span class="bar-value" id="food-value">100/100</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Area -->
+        <main class="display-panel pixel-border">
+            <!-- Sidebar: Avatar and daily drain status -->
+            <div class="avatar-section">
+                <div class="avatar-frame pixel-border">
+                    <!-- Pixel art Stalker image -->
+                    <img src="stalker_avatar_pixel.png" class="avatar-svg" style="image-rendering: pixelated; width: 100%; height: 100%; object-fit: cover; display: block;" alt="Stalker Avatar" />
+                    <div class="avatar-label">СТАЛКЕР</div>
+                </div>
+                <div class="survival-status pixel-border">
+                    <div class="status-indicator">РАСХОД В 22:00:</div>
+                    <div class="status-values">💧-20 | 🍖-20</div>
+                    <div class="status-danger">НЕХВАТКА: -10HP</div>
+                </div>
+            </div>
+
+            <!-- Content Area Screen -->
+            <section class="content-window pixel-border" id="active-tab-content">
+                
+                <!-- 1. Квесты View (Блокнот) -->
+                <div id="view-quests" class="tab-view notebook-page">
+                    <div class="notebook-header">
+                        <h2 class="handwritten-title">Дневник Сталкера</h2>
+                        <button class="pixel-btn mini-btn" id="btn-go-stats">Статистика</button>
+                    </div>
+                    <div class="notebook-content" id="quest-list-container">
+                        <!-- Динамический список квестов -->
+                    </div>
+                </div>
+
+                <!-- Разовые цели View -->
+                <div id="view-onetime" class="tab-view hidden notebook-page">
+                    <h2 class="handwritten-title">Разовые Цели</h2>
+                    
+                    <div class="onetime-form notebook-block">
+                        <h3 class="handwritten-subtitle">Добавить новую цель:</h3>
+                        <input type="text" id="ot-title" class="pixel-input" placeholder="Название цели">
+                        <input type="date" id="ot-date" class="pixel-input">
+                        <input type="number" id="ot-xp" class="pixel-input" placeholder="Награда XP">
+                        <input type="number" id="ot-resources" class="pixel-input" placeholder="Награда Ресурсы">
+                        <button class="pixel-btn" id="btn-add-onetime">СОЗДАТЬ</button>
+                    </div>
+
+                    <div class="notebook-content">
+                        <h3 class="handwritten-subtitle">Предстоящие:</h3>
+                        <div id="onetime-active-list"></div>
+                        
+                        <h3 class="handwritten-subtitle" style="margin-top: 20px;">Архив:</h3>
+                        <div id="onetime-archive-list"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Привычки View -->
+                <div id="view-habits" class="tab-view hidden">
+                    <h2 class="window-title">ПОЛЕЗНЫЕ ПРИВЫЧКИ</h2>
+                    <div class="list-container" id="habits-list-container">
+                        <!-- Динамически рендерится из JS -->
+                    </div>
+                </div>
+
+                <!-- 3. Особые View -->
+                <div id="view-specials" class="tab-view hidden">
+                    <h2 class="window-title">ОСОБЫЕ ЗАДАНИЯ</h2>
+                    <div class="list-container" id="specials-list-container">
+                        <div class="quest-item pixel-border">
+                            <div class="quest-details">
+                                <span class="quest-title">🧹 Генеральная уборка (вск)</span>
+                                <span class="quest-rewards">+25 XP | +10 💧 | Штраф: -10 HP</span>
+                            </div>
+                            <button class="pixel-btn complete-btn">ВЫПОЛНЕНО</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Книги View -->
+                <div id="view-books" class="tab-view hidden">
+                    <h2 class="window-title">БИБЛИОТЕКА ВЫЖИВШЕГО</h2>
+                    <div class="books-wrapper">
+                        <!-- Sunday warning -->
+                        <div class="sunday-warning pixel-border" id="book-sunday-warning">
+                            ⚠️ Внимание: в воскресенье необходимо обновить прогресс чтения!
+                        </div>
+                        
+                        <div class="book-current-card pixel-border">
+                            <div class="book-header">ЧИТАЮ СЕЙЧАС:</div>
+                            <div class="book-title" id="book-current-title">Краткий курс по микроэкономике</div>
+                            <div class="book-author" id="book-current-author">Автор: Не указан</div>
+                            
+                            <div class="book-progress-wrapper">
+                                <div class="bar book-bar">
+                                    <div class="bar-fill" id="book-progress-fill" style="width: 0%;"></div>
+                                    <span class="bar-value" id="book-progress-value">0/120 стр (0%)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="book-update-inline">
+                                <input type="number" id="book-page-input" class="pixel-input" placeholder="Стр.">
+                                <button class="pixel-btn" id="btn-update-book">ОБНОВИТЬ</button>
+                            </div>
+                        </div>
+
+                        <!-- Cabinet list -->
+                        <div class="cabinet-section">
+                            <h3 class="cabinet-title">📕 ТУМБОЧКА ПРОЧИТАННОГО</h3>
+                            <div class="cabinet-list" id="cabinet-list-container">
+                                <span class="no-books">Тумбочка пуста. Прочитайте свою первую книгу!</span>
+                            </div>
+                        </div>
+
+                        <!-- Add book form -->
+                        <div class="add-book-form pixel-border">
+                            <h3 class="form-title">ДОБАВИТЬ НОВУЮ КНИГУ</h3>
+                            <div class="form-fields">
+                                <input type="text" id="add-book-title" class="pixel-input" placeholder="Название">
+                                <input type="text" id="add-book-author" class="pixel-input" placeholder="Автор">
+                                <input type="number" id="add-book-pages" class="pixel-input" placeholder="Всего страниц">
+                                <button class="pixel-btn" id="btn-add-book">ДОБАВИТЬ</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Английский View -->
+                <div id="view-english" class="tab-view hidden">
+                    <h2 class="window-title">АНГЛИЙСКИЙ ЯЗЫК</h2>
+                    <div class="english-wrapper">
+                        <!-- Study slot card -->
+                        <div class="english-card pixel-border">
+                            <div class="card-title">📖 ЗАНЯТИЕ НА НЕДЕЛЮ (1 ЧАС)</div>
+                            <div class="card-desc">Duolingo + Разбор песни (обязательно 1 раз в неделю)</div>
+                            <div class="card-rewards">+50 XP | +10 💧 | Штраф: -10 HP</div>
+                            
+                            <div class="english-actions">
+                                <div class="duo-checkbox-card">
+                                    <label class="pixel-checkbox-label">
+                                        <input type="checkbox" id="english-duo-today">
+                                        <span>Duolingo сегодня</span>
+                                    </label>
+                                </div>
+                                <button class="pixel-btn" id="btn-complete-english-weekly">ВЫПОЛНИТЬ ЧАС</button>
+                            </div>
+                        </div>
+
+                        <!-- Song tracker -->
+                        <div class="english-card pixel-border">
+                            <div class="card-title">🎵 ИЗУЧЕНИЕ ПЕСНИ</div>
+                            <div class="card-desc">Выучить 1 песню на английском (по желанию)</div>
+                            <div class="card-rewards">+30 XP | +5 💧</div>
+                            
+                            <div class="song-update-fields">
+                                <input type="text" id="english-song-title" class="pixel-input" placeholder="Название песни / группа">
+                                <button class="pixel-btn" id="btn-complete-song-achievement">Я ВЫУЧИЛ ПЕСНЮ</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Магазин View -->
+                <div id="view-shop" class="tab-view hidden">
+                    <h2 class="window-title">ЛАГЕРНЫЙ ТОРГОВЕЦ</h2>
+                    <div class="shop-list" id="shop-list-container">
+                        <!-- Динамически рендерится из JS -->
+                    </div>
+                </div>
+
+                <!-- 7. Статистика View -->
+                <div id="view-stats" class="tab-view hidden notebook-page">
+                    <h2 class="handwritten-title">КПП СТАТИСТИКИ</h2>
+                    <div class="stats-display" id="stats-display-container">
+                        <div class="stats-summary notebook-block">
+                            <div class="stat-card">
+                                <div class="stat-card-title">Выполнено сегодня</div>
+                                <div class="stat-card-value handwritten-val" id="stats-completed-today">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-title">Пропущено сегодня</div>
+                                <div class="stat-card-value handwritten-val" id="stats-skipped-today">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Chart.js Canvas -->
+                        <div class="chart-container notebook-block" style="margin-top: 15px; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 5px;">
+                            <canvas id="historyChart" width="400" height="200"></canvas>
+                        </div>
+
+                        <!-- Система сохранения (Резервное копирование) -->
+                        <div class="save-system-section notebook-block" style="margin-top: 15px; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 5px;">
+                            <h3 class="achievements-title" style="margin-top: 0; color: #333;">БЭКАП ДАННЫХ</h3>
+                            <p style="font-size: 10px; color: #555; margin-bottom: 10px; font-family: monospace;">Сохраните свой прогресс в файл (Скачать), чтобы не потерять его при очистке кэша браузера. Потом вы сможете восстановить его (Загрузить).</p>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="pixel-btn" id="btn-export-data">СКАЧАТЬ ФАЙЛ СОХРАНЕНИЯ</button>
+                                <input type="file" id="import-data-file" accept=".json" style="display: none;">
+                                <button class="pixel-btn" id="btn-import-data" onclick="document.getElementById('import-data-file').click();">ЗАГРУЗИТЬ СОХРАНЕНИЕ</button>
+                            </div>
+                        </div>
+
+                        <div class="achievements-section">
+                            <h3 class="achievements-title">ДОСТИЖЕНИЯ СТАЛКЕРА</h3>
+                            <div class="achievements-list" id="achievements-list-container">
+                                <!-- Dynamic accomplishments -->
+                            </div>
+                        </div>
+
+                        <div class="history-section">
+                            <h3 class="history-title">АРХИВ КПП (7 ДНЕЙ)</h3>
+                            <div class="history-list" id="history-list-container">
+                                <!-- Historic logs -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        <!-- Bottom Tabs / Action Grid Navigation -->
+        <footer class="control-panel-grid">
+            <button class="pixel-btn tab-btn active" id="tab-quests">КВЕСТЫ</button>
+            <button class="pixel-btn tab-btn" id="tab-onetime">РАЗОВЫЕ</button>
+            <button class="pixel-btn tab-btn" id="tab-habits">ПРИВЫЧКИ</button>
+            <button class="pixel-btn tab-btn" id="tab-specials">ОСОБЫЕ</button>
+            <button class="pixel-btn tab-btn" id="tab-books">КНИГИ</button>
+            <button class="pixel-btn tab-btn" id="tab-english">АНГЛ</button>
+            <button class="pixel-btn tab-btn" id="tab-shop">МАГАЗИН</button>
+            <button class="pixel-btn tab-btn" id="tab-stats">СТАТЫ</button>
+        </footer>
+    </div>
+
+    <!-- Achievement Toast Notification -->
+    <div id="achievement-toast" class="achievement-toast hidden">
+        <div class="toast-content pixel-border animate-toast">
+            <div class="toast-header">🏆 НОВАЯ АЧИВКА!</div>
+            <div class="toast-name" id="toast-achievement-name">Первая кровь</div>
+            <div class="toast-desc" id="toast-achievement-desc">Выполнить первый квест.</div>
+            <div class="toast-reward" id="toast-achievement-reward">+10 XP</div>
+        </div>
+    </div>
+
+    <!-- Calendar Modal Overlay -->
+    <div id="calendar-modal" class="modal-overlay hidden">
+        <div class="modal-content notebook-page">
+            <div class="modal-header">
+                <h3 class="handwritten-title" id="modal-quest-title">Название квеста</h3>
+                <button class="close-btn" id="close-calendar-btn">&times;</button>
+            </div>
+            
+            <!-- Месяц навигация -->
+            <div class="calendar-nav">
+                <button id="cal-prev-month" class="pixel-btn mini-btn"><</button>
+                <span id="cal-month-label" class="handwritten-subtitle">Сентябрь 2026</span>
+                <button id="cal-next-month" class="pixel-btn mini-btn">></button>
+            </div>
+
+            <!-- Сетка дней недели -->
+            <div class="calendar-grid-header">
+                <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+            </div>
+            
+            <!-- Сама сетка дат -->
+            <div class="calendar-grid" id="calendar-grid-days">
+                <!-- Ячейки вставляются через JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Script inclusion -->
+    <script src="game.js"></script>
+</body>
+</html>
