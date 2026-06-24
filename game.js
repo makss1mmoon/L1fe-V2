@@ -332,6 +332,21 @@ function applyPenalties() {
     }
 }
 
+// --- ПРОВЕРКА УРОВНЯ ---
+function checkLevelUp() {
+    let leveledUp = false;
+    while (playerData.xp >= playerData.xpToNextLevel) {
+        playerData.level++;
+        playerData.xp -= playerData.xpToNextLevel;
+        playerData.xpToNextLevel = playerData.level * 100;
+        playerData.maxHp += 20;
+        playerData.hp = playerData.maxHp;
+        leveledUp = true;
+        console.log(`Новый уровень! УР. ${playerData.level}`);
+    }
+    return leveledUp;
+}
+
 // --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
 function updateUI() {
     // Имя и уровень
@@ -389,6 +404,7 @@ function setupTabs() {
 // --- ИНИЦИАЛИЗАЦИЯ ---
 async function initGame() {
     await loadGameData();
+    checkLevelUp();
     checkAndResetQuests();
     applyPenalties();
     updateUI();
@@ -543,13 +559,7 @@ function completeHabit(habit, event) {
     playerData.food  = Math.min(100, playerData.food  + habit.food);
 
     // Проверка повышения уровня
-    if (playerData.xp >= playerData.xpToNextLevel) {
-        playerData.level++;
-        playerData.xp -= playerData.xpToNextLevel;
-        playerData.xpToNextLevel = playerData.level * 100;
-        playerData.maxHp += 20;
-        playerData.hp = playerData.maxHp;
-    }
+    checkLevelUp();
 
     // Всплывающий текст у курсора
     if (event) {
@@ -729,14 +739,7 @@ function completeQuest(quest, isSpecial) {
     quest.history[todayStr] = 'completed';
 
     // Проверка повышения уровня
-    if (playerData.xp >= playerData.xpToNextLevel) {
-        playerData.level++;
-        playerData.xp -= playerData.xpToNextLevel;
-        playerData.xpToNextLevel = playerData.level * 100;
-        playerData.maxHp += 20;
-        playerData.hp = playerData.maxHp;
-        console.log(`Новый уровень! УР. ${playerData.level}`);
-    }
+    checkLevelUp();
 
     console.log(`✔ Выполнен: "${quest.title}". +${quest.xp} XP. HP: ${playerData.hp}. XP: ${playerData.xp}`);
 
@@ -894,6 +897,8 @@ function renderOneTimeGoals() {
                 playerData.xp    += q.xp;
                 playerData.water  = Math.min(100, playerData.water + q.resources);
                 playerData.food   = Math.min(100, playerData.food  + q.resources);
+
+                checkLevelUp();
 
                 saveGameData();
                 updateUI();
@@ -1177,6 +1182,7 @@ document.getElementById('btn-update-book')?.addEventListener('click', function()
         var foodBonus = Math.floor(book.pages / 10) * 10;
         playerData.xp   += xpBonus;
         playerData.food  = Math.min(100, playerData.food + foodBonus);
+        checkLevelUp();
         showFloatingText('🏆 Книга прочитана! +' + xpBonus + ' XP +' + foodBonus + ' 🍖', window.innerWidth / 2, 160);
         console.log('🏆 "' + book.title + '" прочитана! +' + xpBonus + ' XP, +' + foodBonus + ' еды.');
     }
@@ -1224,13 +1230,7 @@ document.getElementById('btn-complete-song-achievement')?.addEventListener('clic
     playerData.water = Math.min(100, playerData.water + 5);
     
     // Проверка повышения уровня
-    if (playerData.xp >= playerData.xpToNextLevel) {
-        playerData.level++;
-        playerData.xp -= playerData.xpToNextLevel;
-        playerData.xpToNextLevel = playerData.level * 100;
-        playerData.maxHp += 20;
-        playerData.hp = playerData.maxHp;
-    }
+    checkLevelUp();
     
     if (titleInp) titleInp.value = '';
     saveGameData();
@@ -1452,14 +1452,7 @@ function checkAchievements() {
       playerData.xp += ach.xpReward;
       
       // Проверка повышения уровня
-      if (playerData.xp >= playerData.xpToNextLevel) {
-          playerData.level++;
-          playerData.xp -= playerData.xpToNextLevel;
-          playerData.xpToNextLevel = playerData.level * 100;
-          playerData.maxHp += 20;
-          playerData.hp = playerData.maxHp;
-          console.log(`Новый уровень! УР. ${playerData.level}`);
-      }
+      checkLevelUp();
       
       saveGameData();
       showAchievementToast(ach);
