@@ -23,6 +23,7 @@ let noClassesToday = false;
 let noClassesDate = "";
 let habitResetDate = "";
 let unlockedAchievements = {};
+let currentBookId = null;
 
 // --- INDEXED DB WRAPPER ---
 const DB_NAME = 'L1feV2DB';
@@ -138,6 +139,7 @@ async function loadGameData() {
         books      = fullSave.books      || JSON.parse(JSON.stringify(INITIAL_BOOKS));
         oneTimeQuests = fullSave.oneTimeQuests || [];
         unlockedAchievements = fullSave.unlockedAchievements || {};
+        currentBookId = fullSave.currentBookId || null;
         
         lastResetDate = fullSave.lastResetDate || today;
         lastWeeklyReset = fullSave.lastWeeklyReset || today;
@@ -154,6 +156,7 @@ async function loadGameData() {
         books = JSON.parse(JSON.stringify(INITIAL_BOOKS));
         oneTimeQuests = [];
         unlockedAchievements = {};
+        currentBookId = null;
         lastResetDate = today;
         lastWeeklyReset = today;
         habitResetDate = today;
@@ -205,7 +208,8 @@ function saveGameData() {
         habitResetDate,
         noClassesDate,
         noClassesToday,
-        firstLaunchDate
+        firstLaunchDate,
+        currentBookId
     };
     // Сохраняем асинхронно без блокировки UI
     saveToDB('main_save', fullSave).catch(e => console.error('Ошибка сохранения IndexedDB:', e));
@@ -1035,15 +1039,39 @@ function checkNotifications() {
 }
 
 // --- КНИГИ ---
-function renderBooks() {
-    // Ищем первую недочитанную книгу, иначе показываем самую последнюю добавленную
-    const book = books.find(b => b.currentProgress < b.pages) || books[books.length - 1];
-    if (!book) return;
+function getCurrentBook() {
+    const uncompleted = books.filter(b => b.currentProgress < b.pages);
+    if (uncompleted.length === 0) {
+        return books[books.length - 1] || null;
+    }
+    let currentBook = uncompleted.find(b => b.id === currentBookId);
+    if (!currentBook) {
+        currentBook = uncompleted[0];
+        currentBookId = currentBook.id;
+    }
+    return currentBook;
+}
 
+function renderBooks() {
+    const book = getCurrentBook();
     const titleEl  = document.getElementById('book-current-title');
     const authorEl = document.getElementById('book-current-author');
     const fillEl   = document.getElementById('book-progress-fill');
     const valEl    = document.getElementById('book-progress-value');
+    const sundayWarning = document.getElementById('book-sunday-warning');
+    const controls = document.getElementById('book-selector-container');
+    const indexInd = document.getElementById('book-index-indicator');
+
+    if (!book) {
+        if (titleEl)  titleEl.textContent  = 'Нет активных книг';
+        if (authorEl) authorEl.textContent = 'Добавьте книгу ниже';
+        if (valEl)  valEl.textContent  = '0/0 стр (0%)';
+        if (fillEl) fillEl.style.width = '0%';
+        if (controls) controls.style.display = 'none';
+        if (sundayWarning) sundayWarning.style.display = 'none';
+        renderCabinet();
+        return;
+    }
 
     if (titleEl)  titleEl.textContent  = book.title;
     if (authorEl) authorEl.textContent = 'Автор: ' + book.author;
@@ -1054,8 +1082,21 @@ function renderBooks() {
     if (fillEl) fillEl.style.width = pct + '%';
     if (valEl)  valEl.textContent  = book.currentProgress + '/' + book.pages + ' стр (' + pct + '%)';
 
-    const warning = document.getElementById('book-sunday-warning');
-    if (warning) warning.style.display = new Date().getDay() === 0 ? 'block' : 'none';
+    if (sundayWarning) sundayWarning.style.display = new Date().getDay() === 0 ? 'block' : 'none';
+
+    // Рендерим контролы переключения
+    const uncompleted = books.filter(b => b.currentProgress < b.pages);
+    if (controls) {
+        if (uncompleted.length <= 1) {
+            controls.style.display = 'none';
+        } else {
+            controls.style.display = 'flex';
+            const currentIndex = uncompleted.findIndex(b => b.id === book.id);
+            if (indexInd) {
+                indexInd.textContent = (currentIndex + 1) + ' / ' + uncompleted.length;
+            }
+        }
+    }
 
     renderCabinet();
 }
@@ -1077,8 +1118,34 @@ function renderCabinet() {
     });
 }
 
+document.getElementById('btn-prev-book')?.addEventListener('click', function() {
+    const uncompleted = books.filter(b => b.currentProgress < b.pages);
+    if (uncompleted.length <= 1) return;
+    const currentBook = getCurrentBook();
+    let currentIndex = uncompleted.findIndex(b => b.id === currentBook.id);
+    if (currentIndex === -1) currentIndex = 0;
+    
+    const nextIndex = (currentIndex - 1 + uncompleted.length) % uncompleted.length;
+    currentBookId = uncompleted[nextIndex].id;
+    saveGameData();
+    renderBooks();
+});
+
+document.getElementById('btn-next-book')?.addEventListener('click', function() {
+    const uncompleted = books.filter(b => b.currentProgress < b.pages);
+    if (uncompleted.length <= 1) return;
+    const currentBook = getCurrentBook();
+    let currentIndex = uncompleted.findIndex(b => b.id === currentBook.id);
+    if (currentIndex === -1) currentIndex = 0;
+    
+    const nextIndex = (currentIndex + 1) % uncompleted.length;
+    currentBookId = uncompleted[nextIndex].id;
+    saveGameData();
+    renderBooks();
+});
+
 document.getElementById('btn-update-book')?.addEventListener('click', function() {
-    var book = books.find(b => b.currentProgress < b.pages) || books[books.length - 1];
+    var book = getCurrentBook();
     if (!book) return;
     var input   = document.getElementById('book-page-input');
     var newPage = parseInt(input ? input.value : '');
@@ -1132,7 +1199,9 @@ document.getElementById('btn-add-book')?.addEventListener('click', function() {
         showFloatingText('❌ Укажи название и страницы!', window.innerWidth / 2, window.innerHeight / 2, true);
         return;
     }
-    books.push({ id: 'b' + Date.now(), title: title, author: author, pages: pages, currentProgress: 0 });
+    const newBook = { id: 'b' + Date.now(), title: title, author: author, pages: pages, currentProgress: 0 };
+    books.push(newBook);
+    currentBookId = newBook.id;
     if (titleInp)  titleInp.value  = '';
     if (authorInp) authorInp.value = '';
     if (pagesInp)  pagesInp.value  = '';

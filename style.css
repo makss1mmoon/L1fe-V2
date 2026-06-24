@@ -403,6 +403,36 @@ body {
     color: var(--color-text-dark);
 }
 
+.book-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.book-selector-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.book-selector-btn {
+    padding: 2px 5px !important;
+    font-size: 5px !important;
+    line-height: 1;
+}
+
+.book-index-indicator {
+    font-size: 6px;
+    color: var(--color-text);
+    font-weight: bold;
+    min-width: 32px;
+    text-align: center;
+    user-select: none;
+}
+
 .book-title {
     font-size: 8px;
     font-weight: bold;
