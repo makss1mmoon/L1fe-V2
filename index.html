@@ -288,6 +288,41 @@
                     </div>
                 </div>
 
+                <!-- 8. Профиль View -->
+                <div id="view-profile" class="tab-view hidden">
+                    <h2 class="window-title">☢ ПРОФИЛЬ СТАЛКЕРА</h2>
+                    <div class="profile-wrapper">
+
+                        <!-- Слоты сохранения -->
+                        <div class="profile-section pixel-border">
+                            <h3 class="profile-section-title">💾 СЛОТЫ СОХРАНЕНИЯ</h3>
+                            <p class="profile-hint">Сохрани текущий прогресс в слот. Загрузи его позже — даже если очистишь браузер, просто загрузи файл.</p>
+                            <div class="profile-slots" id="profile-slots-container">
+                                <!-- Рендерится из JS -->
+                            </div>
+                        </div>
+
+                        <!-- Резервное копирование -->
+                        <div class="profile-section pixel-border">
+                            <h3 class="profile-section-title">📁 РЕЗЕРВНАЯ КОПИЯ</h3>
+                            <p class="profile-hint">Скачай весь прогресс одним файлом. Отправь его на другое устройство или в Google Диск.</p>
+                            <div class="profile-actions">
+                                <button class="pixel-btn profile-btn" id="profile-btn-export">⬇ СКАЧАТЬ СЕЙВ</button>
+                                <input type="file" id="profile-import-file" accept=".json" style="display:none;">
+                                <button class="pixel-btn profile-btn" id="profile-btn-import" onclick="document.getElementById('profile-import-file').click();">⬆ ЗАГРУЗИТЬ СЕЙВ</button>
+                            </div>
+                        </div>
+
+                        <!-- Сброс прогресса -->
+                        <div class="profile-section pixel-border danger-zone">
+                            <h3 class="profile-section-title">⚠ ОПАСНАЯ ЗОНА</h3>
+                            <p class="profile-hint">Полный сброс удалит всё: уровень, XP, историю квестов. Действие необратимо.</p>
+                            <button class="pixel-btn reset-btn" id="btn-full-reset">💀 ПОЛНЫЙ СБРОС</button>
+                        </div>
+
+                    </div>
+                </div>
+
             </section>
         </main>
 
@@ -301,6 +336,7 @@
             <button class="pixel-btn tab-btn" id="tab-english">АНГЛ</button>
             <button class="pixel-btn tab-btn" id="tab-shop">МАГАЗИН</button>
             <button class="pixel-btn tab-btn" id="tab-stats">СТАТЫ</button>
+            <button class="pixel-btn tab-btn" id="tab-profile">ПРОФИЛЬ</button>
         </footer>
     </div>
 
@@ -342,6 +378,8 @@
     </div>
 
     <!-- Script inclusion -->
+    <!-- Порядок важен: сначала данные, потом логика -->
+    <script src="data.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

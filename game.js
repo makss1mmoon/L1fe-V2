@@ -1,59 +1,11 @@
 /**
  * L1fe V2 - Stalker Edition
- * Логика игры (Этап 3.2: Система сбросов, штрафов и хранения квестов)
+ * Логика игры (Этап 4: Единый ACTIVITY_REGISTRY)
  */
 
-// --- НАЧАЛЬНЫЕ ДАННЫЕ ---
-const INITIAL_PLAYER = {
-    name: "Никто",
-    level: 3,
-    hp: 80,
-    maxHp: 80,
-    xp: 0,
-    xpToNextLevel: 300,
-    water: 100,
-    food: 100
-};
+// --- НАЧАЛЬНЫЕ ДАННЫЕ ИГРОКА (перенесено в data.js) ---
+// ACTIVITY_REGISTRY: тип 'daily'|'special'|'habit' (перенесено в data.js)
 
-const INITIAL_DAILY_QUESTS = [
-    { id: "d1",  title: 'Подъём в 5:00',             xp: 15, water: 5,  food: 0,  hpPenalty: 10, completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [0] },
-    { id: "d2",  title: 'Зарядка / разминка',         xp: 10, water: 0,  food: 3,  hpPenalty: 5,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [0] },
-    { id: "d3",  title: 'Контрастный душ / умывание', xp: 5,  water: 2,  food: 0,  hpPenalty: 3,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [0] },
-    { id: "d4",  title: 'Завтрак',                    xp: 10, water: 0,  food: 5,  hpPenalty: 10, completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [0] },
-    { id: "d5",  title: 'Чтение книги (15 мин утром)',xp: 15, water: 3,  food: 0,  hpPenalty: 5,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [0] },
-    { id: "d6",  title: 'Пробежка (2 км)',             xp: 30, water: 10, food: 0,  hpPenalty: 20, completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [0] },
-    { id: "d7",  title: 'Прийти на работу в 8:20',    xp: 15, water: 0,  food: 5,  hpPenalty: 10, completed: false, penaltyApplied: false, deadline: '22:00', days: [1, 2, 3, 4, 5] },
-    { id: "d8",  title: 'Рабочий день',               xp: 25, water: 0,  food: 10, hpPenalty: 15, completed: false, penaltyApplied: false, deadline: '22:00', days: [1, 2, 3, 4, 5] },
-    { id: "d9",  title: 'Обед',                       xp: 10, water: 0,  food: 5,  hpPenalty: 5,  completed: false, penaltyApplied: false, deadline: '22:00', days: [1, 2, 3, 4, 5] },
-    { id: "d10", title: 'Прийти на пары вовремя',     xp: 15, water: 5,  food: 0,  hpPenalty: 10, completed: false, penaltyApplied: false, deadline: '22:00', days: [1, 2, 3, 4, 5] },
-    { id: "d11", title: 'Пары: присутствие',          xp: 20, water: 5,  food: 0,  hpPenalty: 10, completed: false, penaltyApplied: false, deadline: '22:00', days: [1, 2, 3, 4, 5] },
-    { id: "d12", title: 'Бокс (тренировка)',           xp: 35, water: 10, food: 0,  hpPenalty: 20, completed: false, penaltyApplied: false, deadline: '22:00', days: [2, 5] },
-    { id: "d13", title: 'Ужин',                       xp: 10, water: 0,  food: 5,  hpPenalty: 5,  completed: false, penaltyApplied: false, deadline: '22:00' },
-    { id: "d14", title: 'Дневник',                    xp: 15, water: 3,  food: 0,  hpPenalty: 5,  completed: false, penaltyApplied: false, deadline: '22:00' },
-    { id: "d15", title: 'Гигиена перед сном',         xp: 5,  water: 2,  food: 0,  hpPenalty: 3,  completed: false, penaltyApplied: false, deadline: '22:00' },
-    { id: "d16", title: 'Отбой в 22:00',              xp: 20, water: 5,  food: 0,  hpPenalty: 15, completed: false, penaltyApplied: false, deadline: '22:00' },
-    // --- Квесты восстановления HP (без штрафов) ---
-    { id: "hp1", title: '💧 Стакан воды (утром)',     xp: 2,  water: 0,  food: 0,  hpPenalty: 0, hpReward: 2,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [] },
-    { id: "hp2", title: '🍳 Завтрак (HP)',             xp: 5,  water: 0,  food: 3,  hpPenalty: 0, hpReward: 5,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [] },
-    { id: "hp3", title: '🥗 Обед (HP)',               xp: 5,  water: 0,  food: 3,  hpPenalty: 0, hpReward: 5,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [] },
-    { id: "hp4", title: '🍽 Ужин (HP)',                xp: 5,  water: 0,  food: 3,  hpPenalty: 0, hpReward: 5,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [] },
-    { id: "hp5", title: '🚿 Контрастный душ',         xp: 3,  water: 0,  food: 0,  hpPenalty: 0, hpReward: 3,  completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [] },
-    { id: "hp6", title: '😴 Сон (отбой в 22:00)',     xp: 10, water: 0,  food: 0,  hpPenalty: 0, hpReward: 15, completed: false, penaltyApplied: false, deadline: '22:00', excludeDays: [] }
-];
-
-const INITIAL_SPECIAL_QUESTS = [
-    { id: "s1", title: 'Приготовить еду на 3 дня', xp: 30, water: 0, food: 15, hpPenalty: 10, completed: false, penaltyApplied: false, day: 4, deadline: '23:59' }, // Чт
-    { id: "s2", title: 'Доварить крупы', xp: 20, water: 0, food: 10, hpPenalty: 5, completed: false, penaltyApplied: false, day: 6, deadline: '23:59' }, // Сб
-    { id: "s3", title: 'Генеральная уборка', xp: 25, water: 10, food: 0, hpPenalty: 10, completed: false, penaltyApplied: false, day: 0, deadline: '23:59' }, // Вс
-    { id: "s4", title: 'Планирование недели', xp: 20, water: 5, food: 0, hpPenalty: 5, completed: false, penaltyApplied: false, day: 0, deadline: '23:59' }, // Вс
-    { id: "s5", title: 'Доготовка еды на Пн', xp: 20, water: 0, food: 10, hpPenalty: 5, completed: false, penaltyApplied: false, day: 0, deadline: '23:59' } // Вс
-];
-
-const INITIAL_HABITS = [
-    { id: "h1", title: '💧 Стакан воды', xp: 2, water: 1, food: 0, countToday: 0 },
-    { id: "h2", title: '🧼 Вымыть лицо утром', xp: 2, water: 1, food: 0, countToday: 0 },
-    { id: "h3", title: '🧼 Вымыть лицо вечером', xp: 2, water: 1, food: 0, countToday: 0 }
-];
 
 const INITIAL_BOOKS = [
     { id: "b1", title: "Краткий курс по микроэкономике", author: "Не указан", pages: 120, currentProgress: 0 }
@@ -61,81 +13,202 @@ const INITIAL_BOOKS = [
 
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ СОСТОЯНИЯ ---
 let playerData = {};
-let dailyQuests = [];
-let specialQuests = [];
+let activities = [];   // единственная глобальная переменная вместо трёх (dailyQuests, specialQuests, habits)
 let books = [];
 let oneTimeQuests = [];
-let habits = [];
 let lastResetDate = "";
 let lastWeeklyReset = "";
 let firstLaunchDate = "";
 let noClassesToday = false;
+let noClassesDate = "";
+let habitResetDate = "";
+let unlockedAchievements = {};
+
+// --- INDEXED DB WRAPPER ---
+const DB_NAME = 'L1feV2DB';
+const DB_VERSION = 1;
+const STORE_NAME = 'gameState';
+
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function saveToDB(key, data) {
+    return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.put(data, key);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    });
+}
+
+function loadFromDB(key) {
+    return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.get(key);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    });
+}
+
+// --- ВСПОМОГАТЕЛЬНЫЕ ГЕТТЕРЫ (фильтры по type) ---
+const getDailyQuests   = () => activities.filter(a => a.type === 'daily');
+const getSpecialQuests = () => activities.filter(a => a.type === 'special');
+const getHabits        = () => activities.filter(a => a.type === 'habit');
 
 
 // --- СИСТЕМА СОХРАНЕНИЙ ---
-function loadGameData() {
+async function loadGameData() {
     const today = new Date().toISOString().split('T')[0];
 
-    // Загрузка или инициализация данных
-    playerData    = JSON.parse(localStorage.getItem('playerData'))    || { ...INITIAL_PLAYER };
-    dailyQuests   = JSON.parse(localStorage.getItem('dailyQuests'))   || JSON.parse(JSON.stringify(INITIAL_DAILY_QUESTS));
-    specialQuests = JSON.parse(localStorage.getItem('specialQuests')) || JSON.parse(JSON.stringify(INITIAL_SPECIAL_QUESTS));
-    books         = JSON.parse(localStorage.getItem('books'))         || JSON.parse(JSON.stringify(INITIAL_BOOKS));
-    oneTimeQuests = JSON.parse(localStorage.getItem('oneTimeQuests')) || [];
-    habits        = JSON.parse(localStorage.getItem('habits'))        || JSON.parse(JSON.stringify(INITIAL_HABITS));
+    let fullSave = await loadFromDB('main_save');
 
-    // Синхронизируем дедлайны и hpReward из кода (на случай если в localStorage старые значения)
-    dailyQuests.forEach(q => {
-        const ref = INITIAL_DAILY_QUESTS.find(r => r.id === q.id);
-        if (ref) {
-            q.deadline  = ref.deadline;
-            q.hpReward  = ref.hpReward  || 0;
-            q.hpPenalty = ref.hpPenalty || 0;
+    // Миграция из localStorage
+    if (!fullSave && localStorage.getItem('playerData')) {
+        console.log('Миграция данных: переносим из localStorage в IndexedDB...');
+        
+        const m_playerData = JSON.parse(localStorage.getItem('playerData')) || { ...PLAYER_DEFAULTS };
+        const m_books      = JSON.parse(localStorage.getItem('books'))      || JSON.parse(JSON.stringify(INITIAL_BOOKS));
+        const m_oneTime    = JSON.parse(localStorage.getItem('oneTimeQuests')) || [];
+        const m_ach        = JSON.parse(localStorage.getItem('achievements') || '{}');
+        const m_lastReset  = localStorage.getItem('lastResetDate') || today;
+        const m_lastWeek   = localStorage.getItem('lastWeeklyReset') || today;
+        const m_habReset   = localStorage.getItem('habitResetDate') || today;
+        const m_noClassesD = localStorage.getItem('noClassesDate') || '';
+        const m_noClassesT = localStorage.getItem('noClassesToday') === 'true';
+        const m_firstL     = localStorage.getItem('firstLaunchDate') || today;
+
+        let m_activities = [];
+        const hasOldActivities = localStorage.getItem('dailyQuests') !== null
+                              || localStorage.getItem('specialQuests') !== null
+                              || localStorage.getItem('habits') !== null;
+
+        if (hasOldActivities && localStorage.getItem('activities') === null) {
+            const oldDaily   = JSON.parse(localStorage.getItem('dailyQuests'))   || [];
+            const oldSpecial = JSON.parse(localStorage.getItem('specialQuests')) || [];
+            const oldHabits  = JSON.parse(localStorage.getItem('habits'))        || [];
+            oldDaily.forEach(q   => { q.type = 'daily';   });
+            oldSpecial.forEach(q => { q.type = 'special'; });
+            oldHabits.forEach(h  => { h.type = 'habit';   });
+            m_activities = [...oldDaily, ...oldSpecial, ...oldHabits];
+        } else {
+            m_activities = JSON.parse(localStorage.getItem('activities')) || JSON.parse(JSON.stringify(ACTIVITY_REGISTRY));
         }
-    });
 
-    // Добавляем новые квесты из INITIAL, которых ещё нет в localStorage
-    INITIAL_DAILY_QUESTS.forEach(ref => {
-        if (!dailyQuests.find(q => q.id === ref.id)) {
-            dailyQuests.push(JSON.parse(JSON.stringify(ref)));
-        }
-    });
+        fullSave = {
+            playerData: m_playerData,
+            activities: m_activities,
+            books: m_books,
+            oneTimeQuests: m_oneTime,
+            unlockedAchievements: m_ach,
+            lastResetDate: m_lastReset,
+            lastWeeklyReset: m_lastWeek,
+            habitResetDate: m_habReset,
+            noClassesDate: m_noClassesD,
+            noClassesToday: m_noClassesT,
+            firstLaunchDate: m_firstL
+        };
 
-    // Обеспечиваем наличие поля history
-    dailyQuests.forEach(q   => { if (!q.history) q.history = {}; });
-    specialQuests.forEach(q => { if (!q.history) q.history = {}; });
+        await saveToDB('main_save', fullSave);
+        
+        console.log('Очистка старых данных из localStorage...');
+        const keysToRemove = ['playerData', 'activities', 'books', 'oneTimeQuests', 'achievements', 'lastResetDate', 'lastWeeklyReset', 'habitResetDate', 'noClassesDate', 'noClassesToday', 'firstLaunchDate', 'dailyQuests', 'specialQuests', 'habits', 'purchasedItems'];
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+    }
+
+    if (fullSave) {
+        playerData = fullSave.playerData || { ...PLAYER_DEFAULTS };
+        activities = fullSave.activities || JSON.parse(JSON.stringify(ACTIVITY_REGISTRY));
+        books      = fullSave.books      || JSON.parse(JSON.stringify(INITIAL_BOOKS));
+        oneTimeQuests = fullSave.oneTimeQuests || [];
+        unlockedAchievements = fullSave.unlockedAchievements || {};
+        
+        lastResetDate = fullSave.lastResetDate || today;
+        lastWeeklyReset = fullSave.lastWeeklyReset || today;
+        
+        habitResetDate = fullSave.habitResetDate || today;
+        noClassesDate = fullSave.noClassesDate || '';
+        noClassesToday = (noClassesDate === today) && fullSave.noClassesToday;
+        
+        firstLaunchDate = fullSave.firstLaunchDate || today;
+    } else {
+        // Первый запуск
+        playerData = { ...PLAYER_DEFAULTS };
+        activities = JSON.parse(JSON.stringify(ACTIVITY_REGISTRY));
+        books = JSON.parse(JSON.stringify(INITIAL_BOOKS));
+        oneTimeQuests = [];
+        unlockedAchievements = {};
+        lastResetDate = today;
+        lastWeeklyReset = today;
+        habitResetDate = today;
+        noClassesDate = '';
+        firstLaunchDate = today;
+        noClassesToday = false;
+    }
 
     // Сброс счётчика привычек если прошли сутки
-    const habitResetDate = localStorage.getItem('habitResetDate') || today;
     if (habitResetDate !== today) {
-        habits.forEach(h => { h.countToday = 0; });
-        localStorage.setItem('habitResetDate', today);
+        getHabits().forEach(h => { h.countToday = 0; });
+        habitResetDate = today;
+        saveGameData();
     }
 
-    lastResetDate  = localStorage.getItem('lastResetDate')  || today;
-    lastWeeklyReset = localStorage.getItem('lastWeeklyReset') || today;
+    // Синхронизация активности с реестром
+    activities.forEach(a => {
+        const ref = ACTIVITY_REGISTRY.find(r => r.id === a.id);
+        if (ref) {
+            a.title = ref.title;
+            if (a.type === 'daily' || a.type === 'special') {
+                a.deadline  = ref.deadline;
+                a.hpReward  = ref.hpReward  || 0;
+                a.hpPenalty = ref.hpPenalty || 0;
+            }
+            a.type = ref.type;
+        }
+        if ((a.type === 'daily' || a.type === 'special') && !a.history) {
+            a.history = {};
+        }
+    });
 
-    // Загрузка переключателя «Нет пар сегодня» с авто-сбросом по дате
-    const noClassesDate = localStorage.getItem('noClassesDate') || '';
-    noClassesToday = (noClassesDate === today) && localStorage.getItem('noClassesToday') === 'true';
-
-    firstLaunchDate = localStorage.getItem('firstLaunchDate');
-    if (!firstLaunchDate) {
-        firstLaunchDate = today;
-        localStorage.setItem('firstLaunchDate', firstLaunchDate);
-    }
+    ACTIVITY_REGISTRY.forEach(ref => {
+        if (!activities.find(a => a.id === ref.id)) {
+            activities.push(JSON.parse(JSON.stringify(ref)));
+        }
+    });
 }
 
-
 function saveGameData() {
-    localStorage.setItem('playerData', JSON.stringify(playerData));
-    localStorage.setItem('dailyQuests', JSON.stringify(dailyQuests));
-    localStorage.setItem('specialQuests', JSON.stringify(specialQuests));
-    localStorage.setItem('books', JSON.stringify(books));
-    localStorage.setItem('oneTimeQuests', JSON.stringify(oneTimeQuests));
-    localStorage.setItem('habits', JSON.stringify(habits));
-    localStorage.setItem('lastResetDate', lastResetDate);
-    localStorage.setItem('lastWeeklyReset', lastWeeklyReset);
+    const fullSave = {
+        playerData,
+        activities,
+        books,
+        oneTimeQuests,
+        unlockedAchievements,
+        lastResetDate,
+        lastWeeklyReset,
+        habitResetDate,
+        noClassesDate,
+        noClassesToday,
+        firstLaunchDate
+    };
+    // Сохраняем асинхронно без блокировки UI
+    saveToDB('main_save', fullSave).catch(e => console.error('Ошибка сохранения IndexedDB:', e));
 }
 
 // --- ФУНКЦИЯ ПРОВЕРКИ И СБРОСА ---
@@ -147,11 +220,11 @@ function checkAndResetQuests() {
     // 1. Ежедневный сброс (в 00:00)
     if (lastResetDate !== todayStr) {
         console.log("Выполняется ежедневный сброс квестов...");
-        
+
         const lastDateObj = new Date(lastResetDate);
         const lastDayOfWeek = lastDateObj.getDay();
 
-        dailyQuests.forEach(q => {
+        getDailyQuests().forEach(q => {
             const isExcluded = q.excludeDays && q.excludeDays.includes(lastDayOfWeek);
             const isIncluded = q.days ? q.days.includes(lastDayOfWeek) : true;
             if (!isExcluded && isIncluded) {
@@ -167,7 +240,7 @@ function checkAndResetQuests() {
         playerData.water -= 20;
         playerData.food -= 20;
         if (playerData.water < 0) { playerData.hp -= 10; playerData.water = 0; }
-        if (playerData.food < 0) { playerData.hp -= 10; playerData.food = 0; }
+        if (playerData.food < 0)  { playerData.hp -= 10; playerData.food  = 0; }
 
         lastResetDate = todayStr;
     }
@@ -175,7 +248,7 @@ function checkAndResetQuests() {
     // 2. Еженедельный сброс (В воскресенье)
     if (dayOfWeek === 0 && lastWeeklyReset !== todayStr) {
         console.log("Выполняется еженедельный сброс (Воскресенье)...");
-        specialQuests.forEach(q => {
+        getSpecialQuests().forEach(q => {
             if (!q.completed && !q.history[lastWeeklyReset]) {
                 q.history[lastWeeklyReset] = 'missed';
             }
@@ -195,8 +268,7 @@ function applyPenalties() {
     let penaltiesAppliedCount = 0;
 
     // Штрафы для ежедневных квестов
-    const CLASS_QUEST_IDS = ['d10', 'd11'];
-    dailyQuests.forEach(quest => {
+    getDailyQuests().forEach(quest => {
         const isExcluded = quest.excludeDays && quest.excludeDays.includes(dayOfWeek);
         const isIncluded = quest.days ? quest.days.includes(dayOfWeek) : true;
 
@@ -228,7 +300,7 @@ function applyPenalties() {
     });
 
     // Штрафы для особых (еженедельных)
-    specialQuests.forEach(quest => {
+    getSpecialQuests().forEach(quest => {
         if (quest.day === dayOfWeek && !quest.completed && !quest.penaltyApplied && quest.deadline) {
             const [hours, minutes] = quest.deadline.split(':').map(Number);
             const deadlineDate = new Date();
@@ -265,7 +337,6 @@ function updateUI() {
     // Индикатор Дня
     const start = new Date(firstLaunchDate);
     const today = new Date(new Date().toISOString().split('T')[0]);
-    // Вычисляем разницу в днях (+1, чтобы первый день был Днем 1)
     const diffTime = Math.abs(today - start);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     const dayInd = document.getElementById('day-indicator');
@@ -312,22 +383,26 @@ function setupTabs() {
 }
 
 // --- ИНИЦИАЛИЗАЦИЯ ---
-function initGame() {
-    loadGameData();
+async function initGame() {
+    await loadGameData();
     checkAndResetQuests();
     applyPenalties();
     updateUI();
     setupTabs();
-    
+
     renderQuests();
     renderHabits();
     renderShop();
     renderBooks();
     renderOneTimeGoals();
     renderStats();
+    renderAchievements();
     initNotifications();
     setupSaveSystem();
-    
+    setupProfileTab();
+
+    checkAchievements();
+
     // Штрафы и уведомления каждую минуту
     setInterval(() => {
         applyPenalties();
@@ -335,7 +410,7 @@ function initGame() {
         checkNotifications();
     }, 60000);
 
-    console.log("Система квестов загружена. Текущий статус:", { playerData, dailyQuests });
+    console.log("Система квестов загружена. Текущий статус:", { playerData, activities });
 }
 
 window.onload = initGame;
@@ -346,27 +421,17 @@ function setupSaveSystem() {
     const importInput = document.getElementById('import-data-file');
 
     if (btnExport) {
-        btnExport.addEventListener('click', () => {
-            const allData = {
-                playerData: JSON.parse(localStorage.getItem('playerData')),
-                dailyQuests: JSON.parse(localStorage.getItem('dailyQuests')),
-                specialQuests: JSON.parse(localStorage.getItem('specialQuests')),
-                books: JSON.parse(localStorage.getItem('books')),
-                oneTimeQuests: JSON.parse(localStorage.getItem('oneTimeQuests')),
-                habits: JSON.parse(localStorage.getItem('habits')),
-                lastResetDate: localStorage.getItem('lastResetDate'),
-                lastWeeklyReset: localStorage.getItem('lastWeeklyReset'),
-                habitResetDate: localStorage.getItem('habitResetDate'),
-                noClassesDate: localStorage.getItem('noClassesDate'),
-                noClassesToday: localStorage.getItem('noClassesToday'),
-                firstLaunchDate: localStorage.getItem('firstLaunchDate'),
-                purchasedItems: JSON.parse(localStorage.getItem('purchasedItems') || '[]'),
-                achievements: JSON.parse(localStorage.getItem('achievements') || '{}')
+        btnExport.addEventListener('click', async () => {
+            const allData = await loadFromDB('main_save');
+            const dataToExport = allData || {
+                playerData, activities, books, oneTimeQuests, unlockedAchievements,
+                lastResetDate, lastWeeklyReset, habitResetDate,
+                noClassesDate, noClassesToday, firstLaunchDate
             };
 
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData, null, 2));
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
             const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href",     dataStr     );
+            dlAnchorElem.setAttribute("href",     dataStr);
             dlAnchorElem.setAttribute("download", `l1fe_v2_save_${new Date().toISOString().split('T')[0]}.json`);
             dlAnchorElem.click();
         });
@@ -378,29 +443,34 @@ function setupSaveSystem() {
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
                 try {
                     const importedData = JSON.parse(event.target.result);
-                    
+
                     if (!importedData.playerData) {
                         throw new Error("Неверный формат сохранения.");
                     }
 
-                    for (const key in importedData) {
-                        if (importedData[key] !== null && importedData[key] !== undefined) {
-                            if (typeof importedData[key] === 'object') {
-                                localStorage.setItem(key, JSON.stringify(importedData[key]));
-                            } else {
-                                localStorage.setItem(key, importedData[key]);
-                            }
-                        }
+                    // Поддержка старого формата сохранения
+                    if (!importedData.activities && (importedData.dailyQuests || importedData.specialQuests || importedData.habits)) {
+                        const oldDaily   = importedData.dailyQuests   || [];
+                        const oldSpecial = importedData.specialQuests || [];
+                        const oldHabits  = importedData.habits        || [];
+                        oldDaily.forEach(q   => { q.type = 'daily';   });
+                        oldSpecial.forEach(q => { q.type = 'special'; });
+                        oldHabits.forEach(h  => { h.type = 'habit';   });
+                        importedData.activities = [...oldDaily, ...oldSpecial, ...oldHabits];
+                        delete importedData.dailyQuests;
+                        delete importedData.specialQuests;
+                        delete importedData.habits;
                     }
 
+                    await saveToDB('main_save', importedData);
                     alert("Сохранение успешно загружено! Страница будет перезагружена.");
                     location.reload();
                 } catch (error) {
                     console.error("Ошибка импорта:", error);
-                    alert("Ошибка при чтении файла сохранения. Возможно, файл поврежден.");
+                    alert("Ошибка при чтении файла сохранения. Возможно, файл повреждён.");
                 }
             };
             reader.readAsText(file);
@@ -414,7 +484,7 @@ function renderHabits() {
     if (!container) return;
     container.innerHTML = '';
 
-    habits.forEach(habit => {
+    getHabits().forEach(habit => {
         const el = document.createElement('div');
         el.className = 'habit-item pixel-border';
 
@@ -432,7 +502,8 @@ function renderHabits() {
         const countSpan = document.createElement('span');
         countSpan.className = 'habit-rewards';
         countSpan.style.color = '#a8d8a8';
-        countSpan.textContent = habit.countToday > 0 ? `✔ Сегодня: ${habit.countToday}×` : '';
+        const maxStr = habit.maxCount ? ` / ${habit.maxCount}` : '';
+        countSpan.textContent = habit.countToday > 0 ? `✔ Сегодня: ${habit.countToday}${maxStr}` : '';
 
         detailsDiv.appendChild(titleSpan);
         detailsDiv.appendChild(rewardsSpan);
@@ -440,8 +511,15 @@ function renderHabits() {
 
         const btn = document.createElement('button');
         btn.className = 'pixel-btn complete-btn';
-        btn.textContent = 'ОТМЕТИТЬ';
-        btn.addEventListener('click', (e) => completeHabit(habit, e));
+        if (habit.maxCount && habit.countToday >= habit.maxCount) {
+            btn.textContent = 'МАКСИМУМ';
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.addEventListener('click', (e) => showFloatingText('❌ Лимит исчерпан!', e.clientX, e.clientY, true));
+        } else {
+            btn.textContent = 'ОТМЕТИТЬ';
+            btn.addEventListener('click', (e) => completeHabit(habit, e));
+        }
 
         el.appendChild(detailsDiv);
         el.appendChild(btn);
@@ -450,10 +528,15 @@ function renderHabits() {
 }
 
 function completeHabit(habit, event) {
+    if (habit.maxCount && habit.countToday >= habit.maxCount) {
+        if (event) showFloatingText('❌ Лимит на сегодня исчерпан!', event.clientX, event.clientY, true);
+        return;
+    }
+
     habit.countToday = (habit.countToday || 0) + 1;
     playerData.xp += habit.xp;
     playerData.water = Math.min(100, playerData.water + habit.water);
-    playerData.food = Math.min(100, playerData.food + habit.food);
+    playerData.food  = Math.min(100, playerData.food  + habit.food);
 
     // Проверка повышения уровня
     if (playerData.xp >= playerData.xpToNextLevel) {
@@ -470,6 +553,7 @@ function completeHabit(habit, event) {
     }
 
     saveGameData();
+    checkAchievements();
     renderHabits();
     updateUI();
     console.log(`✔ Привычка: "${habit.title}". +${habit.xp} XP. Вода: ${playerData.water}`);
@@ -481,7 +565,7 @@ function showFloatingText(text, x, y, isNegative = false) {
     el.className = 'floating-text';
     el.textContent = text;
     el.style.left = x + 'px';
-    el.style.top = y + 'px';
+    el.style.top  = y + 'px';
     if (isNegative) el.style.color = '#e74c3c';
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 900);
@@ -585,36 +669,35 @@ function renderQuests() {
     headerD.className = 'handwritten-subtitle';
     headerD.textContent = 'Ежедневные задачи:';
     container.appendChild(headerD);
-    dailyQuests.forEach(q => createQuestHTML(q, false));
+    getDailyQuests().forEach(q => createQuestHTML(q, false));
 
     const headerS = document.createElement('h3');
     headerS.className = 'handwritten-subtitle';
     headerS.textContent = 'Особые задачи (Еженедельные):';
     headerS.style.marginTop = '15px';
     container.appendChild(headerS);
-    specialQuests.forEach(q => createQuestHTML(q, true));
+    getSpecialQuests().forEach(q => createQuestHTML(q, true));
 }
 
 // --- ПЕРЕКЛЮЧАТЕЛЬ «НЕТ ПАР СЕГОДНЯ» ---
 function toggleNoClasses() {
     const today = new Date().toISOString().split('T')[0];
     noClassesToday = !noClassesToday;
-    localStorage.setItem('noClassesToday', noClassesToday ? 'true' : 'false');
-    localStorage.setItem('noClassesDate', today);
+    noClassesDate = today;
 
     // Сбрасываем статус квестов учёбы при включении
     if (noClassesToday) {
         CLASS_QUEST_IDS.forEach(id => {
-            const q = dailyQuests.find(q => q.id === id);
+            const q = getDailyQuests().find(q => q.id === id);
             if (q) {
                 q.completed = false;
                 q.penaltyApplied = false;
                 q.history[today] = 'inactive';
             }
         });
-        saveGameData();
     }
 
+    saveGameData();
     renderQuests();
     console.log('🎓 Переключатель «Нет пар»:', noClassesToday ? 'ВКЛ' : 'ВЫКЛ');
 }
@@ -627,9 +710,9 @@ function completeQuest(quest, isSpecial) {
     }
 
     quest.completed = true;
-    playerData.xp += quest.xp;
-    playerData.water = Math.min(100, playerData.water + quest.water);
-    playerData.food = Math.min(100, playerData.food + quest.food);
+    playerData.xp    += quest.xp;
+    playerData.water  = Math.min(100, playerData.water + quest.water);
+    playerData.food   = Math.min(100, playerData.food  + quest.food);
 
     // Восстановление HP (для квестов с полем hpReward)
     if (quest.hpReward && quest.hpReward > 0) {
@@ -654,6 +737,7 @@ function completeQuest(quest, isSpecial) {
     console.log(`✔ Выполнен: "${quest.title}". +${quest.xp} XP. HP: ${playerData.hp}. XP: ${playerData.xp}`);
 
     saveGameData();
+    checkAchievements();
     renderQuests();
     updateUI();
     renderStats();
@@ -700,37 +784,37 @@ document.getElementById('close-calendar-btn')?.addEventListener('click', () => {
 
 function renderCalendar() {
     if (!currentViewQuest) return;
-    const year = currentCalendarDate.getFullYear();
+    const year  = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
-    
+
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     document.getElementById('cal-month-label').textContent = `${monthNames[month]} ${year}`;
-    
+
     const grid = document.getElementById('calendar-grid-days');
     grid.innerHTML = '';
-    
-    const firstDay = new Date(year, month, 1).getDay();
+
+    const firstDay    = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const startOffset = firstDay === 0 ? 6 : firstDay - 1; // Понедельник = 0
-    
+
     for (let i = 0; i < startOffset; i++) {
         const empty = document.createElement('div');
         empty.className = 'cal-cell empty';
         grid.appendChild(empty);
     }
-    
+
     const todayStr = new Date().toISOString().split('T')[0];
-    
+
     for (let i = 1; i <= daysInMonth; i++) {
-        const cellDate = new Date(year, month, i, 12);
+        const cellDate    = new Date(year, month, i, 12);
         const cellDateStr = cellDate.toISOString().split('T')[0];
-        
+
         const cell = document.createElement('div');
         cell.className = 'cal-cell';
         cell.textContent = i;
-        
+
         if (cellDateStr === todayStr) cell.classList.add('today');
-        
+
         if (cellDate > new Date()) {
             cell.classList.add('future');
         } else {
@@ -739,7 +823,7 @@ function renderCalendar() {
             else if (status === 'missed')   cell.classList.add('missed');
             else if (status === 'inactive') cell.classList.add('inactive');
         }
-        
+
         grid.appendChild(cell);
     }
 }
@@ -756,33 +840,33 @@ document.getElementById('cal-next-month')?.addEventListener('click', () => {
 // --- РАЗОВЫЕ ЦЕЛИ ---
 document.getElementById('btn-add-onetime')?.addEventListener('click', () => {
     const title = document.getElementById('ot-title').value;
-    const date = document.getElementById('ot-date').value;
-    const xp = parseInt(document.getElementById('ot-xp').value) || 0;
-    const res = parseInt(document.getElementById('ot-resources').value) || 0;
-    
+    const date  = document.getElementById('ot-date').value;
+    const xp    = parseInt(document.getElementById('ot-xp').value) || 0;
+    const res   = parseInt(document.getElementById('ot-resources').value) || 0;
+
     if (!title || !date) return alert("Введите название и дату.");
-    
+
     oneTimeQuests.push({
         id: 'ot_' + Date.now(),
         title, date, xp, resources: res, completed: false, result: ''
     });
-    
+
     saveGameData();
     renderOneTimeGoals();
     document.getElementById('ot-title').value = '';
-    document.getElementById('ot-date').value = '';
-    document.getElementById('ot-xp').value = '';
+    document.getElementById('ot-date').value  = '';
+    document.getElementById('ot-xp').value    = '';
     document.getElementById('ot-resources').value = '';
 });
 
 function renderOneTimeGoals() {
-    const activeList = document.getElementById('onetime-active-list');
+    const activeList  = document.getElementById('onetime-active-list');
     const archiveList = document.getElementById('onetime-archive-list');
     if (!activeList || !archiveList) return;
-    
-    activeList.innerHTML = '';
+
+    activeList.innerHTML  = '';
     archiveList.innerHTML = '';
-    
+
     oneTimeQuests.forEach(q => {
         const el = document.createElement('div');
         el.className = 'onetime-item';
@@ -795,18 +879,18 @@ function renderOneTimeGoals() {
                 ${q.completed ? '<span class="nq-status-icon completed">✔</span>' : '<button class="pixel-btn complete-btn mini-btn" style="padding:4px; font-size:6px;">ВЫПОЛНИТЬ</button>'}
             </div>
         `;
-        
+
         if (!q.completed) {
             const btn = el.querySelector('.complete-btn');
             btn.addEventListener('click', () => {
                 const result = prompt("Введите результат (время, счет и т.д.), если есть:", q.result || "");
                 q.completed = true;
                 if (result) q.result = result;
-                
-                playerData.xp += q.xp;
-                playerData.water = Math.min(100, playerData.water + q.resources);
-                playerData.food = Math.min(100, playerData.food + q.resources);
-                
+
+                playerData.xp    += q.xp;
+                playerData.water  = Math.min(100, playerData.water + q.resources);
+                playerData.food   = Math.min(100, playerData.food  + q.resources);
+
                 saveGameData();
                 updateUI();
                 renderOneTimeGoals();
@@ -825,43 +909,45 @@ function renderStats() {
     const todayStr = new Date().toISOString().split('T')[0];
     let compToday = 0;
     let skipToday = 0;
-    
+
     const countStats = (quests) => {
         quests.forEach(q => {
             if (q.history[todayStr] === 'completed') compToday++;
-            if (q.history[todayStr] === 'missed') skipToday++;
+            if (q.history[todayStr] === 'missed')    skipToday++;
         });
     };
-    countStats(dailyQuests);
-    countStats(specialQuests);
-    
+    countStats(getDailyQuests());
+    countStats(getSpecialQuests());
+
     const compEl = document.getElementById('stats-completed-today');
     const skipEl = document.getElementById('stats-skipped-today');
     if (compEl) compEl.textContent = compToday;
     if (skipEl) skipEl.textContent = skipToday;
-    
+
     const ctx = document.getElementById('historyChart');
     if (!ctx) return;
-    
-    const labels = [];
+
+    const labels        = [];
     const completedData = [];
-    const missedData = [];
-    
+    const missedData    = [];
+
+    const allTrackedQuests = getDailyQuests().concat(getSpecialQuests());
+
     for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dStr = d.toISOString().split('T')[0];
         labels.push(d.getDate() + '.' + (d.getMonth() + 1));
-        
+
         let c = 0; let m = 0;
-        dailyQuests.concat(specialQuests).forEach(q => {
+        allTrackedQuests.forEach(q => {
             if (q.history[dStr] === 'completed') c++;
-            if (q.history[dStr] === 'missed') m++;
+            if (q.history[dStr] === 'missed')    m++;
         });
         completedData.push(c);
         missedData.push(m);
     }
-    
+
     if (statsChart) statsChart.destroy();
     if (typeof Chart !== 'undefined') {
         statsChart = new Chart(ctx, {
@@ -870,7 +956,7 @@ function renderStats() {
                 labels: labels,
                 datasets: [
                     { label: 'Выполнено', data: completedData, backgroundColor: '#2ecc71' },
-                    { label: 'Пропущено', data: missedData, backgroundColor: '#e74c3c' }
+                    { label: 'Пропущено', data: missedData,    backgroundColor: '#e74c3c' }
                 ]
             },
             options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
@@ -882,20 +968,13 @@ document.getElementById('btn-go-stats')?.addEventListener('click', () => {
     document.getElementById('tab-stats').click();
 });
 
-// --- МАГАЗИН НАГРАД ---
-const REWARDS = [
-    { id: 'r1', name: '📺 1 час сериала/фильма',     costWater: 50,  costFood: 50  },
-    { id: 'r2', name: '🍰 Десерт в субботу',          costWater: 30,  costFood: 20  },
-    { id: 'r3', name: '😴 Доп. час сна',           costWater: 40,  costFood: 40  },
-    { id: 'r4', name: '📖 Новая книга (электронная)', costWater: 60,  costFood: 60  },
-    { id: 'r5', name: '☕ Поход в кафе',              costWater: 100, costFood: 100 }
-];
+// --- МАГАЗИН НАГРАД (перенесено в data.js) ---
 
 function renderShop() {
     const container = document.getElementById('shop-list-container');
     if (!container) return;
     container.innerHTML = '';
-    REWARDS.forEach(function(reward) {
+    SHOP_DATA.forEach(function(reward) {
         const el = document.createElement('div');
         el.className = 'shop-item pixel-border';
         const detailsDiv = document.createElement('div');
@@ -919,7 +998,7 @@ function renderShop() {
 }
 
 function buyReward(rewardId, event) {
-    const reward = REWARDS.find(function(r) { return r.id === rewardId; });
+    const reward = SHOP_DATA.find(function(r) { return r.id === rewardId; });
     if (!reward) return;
     if (playerData.water < reward.costWater || playerData.food < reward.costFood) {
         if (event) showFloatingText('❌ Мало ресурсов!', event.clientX, event.clientY, true);
@@ -944,8 +1023,8 @@ function initNotifications() {
 
 function checkNotifications() {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
-    const now = new Date();
-    const hours = now.getHours();
+    const now     = new Date();
+    const hours   = now.getHours();
     const minutes = now.getMinutes();
     if ((hours === 13 || hours === 21) && minutes === 0) {
         new Notification("Сталкер, проверка связи!", {
@@ -957,7 +1036,8 @@ function checkNotifications() {
 
 // --- КНИГИ ---
 function renderBooks() {
-    const book = books[0];
+    // Ищем первую недочитанную книгу, иначе показываем самую последнюю добавленную
+    const book = books.find(b => b.currentProgress < b.pages) || books[books.length - 1];
     if (!book) return;
 
     const titleEl  = document.getElementById('book-current-title');
@@ -998,7 +1078,7 @@ function renderCabinet() {
 }
 
 document.getElementById('btn-update-book')?.addEventListener('click', function() {
-    var book = books[0];
+    var book = books.find(b => b.currentProgress < b.pages) || books[books.length - 1];
     if (!book) return;
     var input   = document.getElementById('book-page-input');
     var newPage = parseInt(input ? input.value : '');
@@ -1036,6 +1116,7 @@ document.getElementById('btn-update-book')?.addEventListener('click', function()
 
     if (input) input.value = '';
     saveGameData();
+    checkAchievements();
     renderBooks();
     updateUI();
 });
@@ -1044,8 +1125,8 @@ document.getElementById('btn-add-book')?.addEventListener('click', function() {
     var titleInp  = document.getElementById('add-book-title');
     var authorInp = document.getElementById('add-book-author');
     var pagesInp  = document.getElementById('add-book-pages');
-    var title  = titleInp  ? titleInp.value.trim()                    : '';
-    var author = authorInp ? (authorInp.value.trim() || 'Не указан') : 'Не указан';
+    var title  = titleInp  ? titleInp.value.trim()                     : '';
+    var author = authorInp ? (authorInp.value.trim() || 'Не указан')   : 'Не указан';
     var pages  = parseInt(pagesInp ? pagesInp.value : '');
     if (!title || !pages || pages <= 0) {
         showFloatingText('❌ Укажи название и страницы!', window.innerWidth / 2, window.innerHeight / 2, true);
@@ -1059,3 +1140,299 @@ document.getElementById('btn-add-book')?.addEventListener('click', function() {
     renderBooks();
     console.log('📚 Добавлена: "' + title + '" (' + pages + ' стр.)');
 });
+
+// --- АНГЛИЙСКИЙ (ПЕСНИ) ---
+document.getElementById('btn-complete-song-achievement')?.addEventListener('click', function(e) {
+    var titleInp = document.getElementById('english-song-title');
+    var title = titleInp ? titleInp.value.trim() : '';
+    
+    if (!title) {
+        showFloatingText('❌ Введи название песни!', e.clientX, e.clientY, true);
+        return;
+    }
+    
+    playerData.xp += 30;
+    playerData.water = Math.min(100, playerData.water + 5);
+    
+    // Проверка повышения уровня
+    if (playerData.xp >= playerData.xpToNextLevel) {
+        playerData.level++;
+        playerData.xp -= playerData.xpToNextLevel;
+        playerData.xpToNextLevel = playerData.level * 100;
+        playerData.maxHp += 20;
+        playerData.hp = playerData.maxHp;
+    }
+    
+    if (titleInp) titleInp.value = '';
+    saveGameData();
+    updateUI();
+    
+    showFloatingText('🎵 Песня выучена! +30 XP, +5 💧', e.clientX, e.clientY);
+    console.log('🎵 Выучена песня: "' + title + '". Награда получена.');
+});
+
+// --- \u041f\u0420\u041e\u0424\u0418\u041b\u042c: \u0421\u041b\u041e\u0422\u042b \u0421\u041e\u0425\u0420\u0410\u041d\u0415\u041d\u0418\u042f ---
+const PROFILE_SLOTS = 3;
+
+function renderProfileSlots() {
+    const container = document.getElementById('profile-slots-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (let i = 1; i <= PROFILE_SLOTS; i++) {
+        const slotKey = `profile_slot_${i}`;
+        const el = document.createElement('div');
+        el.className = 'profile-slot pixel-border';
+
+        loadFromDB(slotKey).then(slotData => {
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'profile-slot-info';
+
+            if (slotData) {
+                const d = slotData.savedAt ? new Date(slotData.savedAt) : null;
+                const dateStr = d ? d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '?';
+                const lvl = slotData.playerData?.level ?? '?';
+                const xp  = slotData.playerData?.xp ?? '?';
+
+                infoDiv.innerHTML = `
+                    <span class="profile-slot-name">\ud83d\udcbe \u0421\u043b\u043e\u0442 ${i}</span>
+                    <span class="profile-slot-meta">\u0423\u0420. ${lvl} | XP: ${xp} | ${dateStr}</span>`;
+
+                const btnLoad = document.createElement('button');
+                btnLoad.className = 'pixel-btn slot-btn';
+                btnLoad.textContent = '\u0417\u0410\u0413\u0420\u0423\u0417\u0418\u0422\u042c';
+                btnLoad.addEventListener('click', () => loadFromSlot(slotKey));
+
+                const btnDel = document.createElement('button');
+                btnDel.className = 'pixel-btn slot-btn slot-btn-danger';
+                btnDel.textContent = '\u0423\u0414\u0410\u041b\u0418\u0422\u042c';
+                btnDel.addEventListener('click', () => deleteSlot(slotKey));
+
+                el.appendChild(infoDiv);
+                el.appendChild(btnLoad);
+                el.appendChild(btnDel);
+            } else {
+                infoDiv.innerHTML = `
+                    <span class="profile-slot-name">\ud83d\udcbe \u0421\u043b\u043e\u0442 ${i}</span>
+                    <span class="profile-slot-empty">— \u041f\u0443\u0441\u0442\u043e —</span>`;
+
+                const btnSave = document.createElement('button');
+                btnSave.className = 'pixel-btn slot-btn';
+                btnSave.textContent = '\u0421\u041e\u0425\u0420\u0410\u041d\u0418\u0422\u042c';
+                btnSave.addEventListener('click', () => saveToSlot(slotKey));
+
+                el.appendChild(infoDiv);
+                el.appendChild(btnSave);
+            }
+
+            container.appendChild(el);
+        });
+    }
+}
+
+async function saveToSlot(slotKey) {
+    const snapshot = await loadFromDB('main_save');
+    if (!snapshot) {
+        showFloatingText('\u274c \u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445 \u0434\u043b\u044f \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f!', window.innerWidth / 2, 200, true);
+        return;
+    }
+    const toSave = Object.assign({}, snapshot, { savedAt: new Date().toISOString() });
+    await saveToDB(slotKey, toSave);
+    showFloatingText('\u2705 \u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d \u0432 \u0441\u043b\u043e\u0442!', window.innerWidth / 2, 200);
+    renderProfileSlots();
+}
+
+async function loadFromSlot(slotKey) {
+    const slotData = await loadFromDB(slotKey);
+    if (!slotData) return;
+    if (!confirm('\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u044d\u0442\u043e\u0442 \u0441\u043b\u043e\u0442? \u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u0431\u0443\u0434\u0435\u0442 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0438\u0441\u0430\u043d.')) return;
+    const { savedAt, ...gameData } = slotData;
+    await saveToDB('main_save', gameData);
+    location.reload();
+}
+
+async function deleteSlot(slotKey) {
+    if (!confirm('\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u0432 \u044d\u0442\u043e\u043c \u0441\u043b\u043e\u0442\u0435?')) return;
+    const db = await initDB();
+    await new Promise((res, rej) => {
+        const tx = db.transaction('gameState', 'readwrite');
+        const req = tx.objectStore('gameState').delete(slotKey);
+        req.onsuccess = () => res();
+        req.onerror = () => rej(req.error);
+    });
+    renderProfileSlots();
+}
+
+async function fullReset() {
+    if (!confirm('\u041f\u043e\u043b\u043d\u044b\u0439 \u0441\u0431\u0440\u043e\u0441? \u0412\u0435\u0441\u044c \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u0431\u0443\u0434\u0435\u0442 \u0443\u0434\u0430\u043b\u0451\u043d \u0431\u0435\u0437\u0432\u043e\u0437\u0432\u0440\u0430\u0442\u043d\u043e!')) return;
+    if (!confirm('\u0422\u043e\u0447\u043d\u043e \u0443\u0432\u0435\u0440\u0435\u043d? \u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043e\u0431\u0440\u0430\u0442\u0438\u043c\u043e.')) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const freshSave = {
+        playerData: { ...PLAYER_DEFAULTS },
+        activities: JSON.parse(JSON.stringify(ACTIVITY_REGISTRY)),
+        books: JSON.parse(JSON.stringify(INITIAL_BOOKS)),
+        oneTimeQuests: [],
+        unlockedAchievements: {},
+        lastResetDate: today,
+        lastWeeklyReset: today,
+        habitResetDate: today,
+        noClassesDate: '',
+        noClassesToday: false,
+        firstLaunchDate: today
+    };
+    await saveToDB('main_save', freshSave);
+    alert('\u0421\u0431\u0440\u043e\u0441 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d. \u0421\u0442\u0440\u0430\u043d\u0438\u0446\u0430 \u0431\u0443\u0434\u0435\u0442 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u0430.');
+    location.reload();
+}
+
+function setupProfileTab() {
+    // \u041a\u043d\u043e\u043f\u043a\u0430 \u043f\u043e\u043b\u043d\u043e\u0433\u043e \u0441\u0431\u0440\u043e\u0441\u0430
+    document.getElementById('btn-full-reset')
+        ?.addEventListener('click', fullReset);
+
+    // \u0420\u0435\u0437\u0435\u0440\u0432\u043d\u0430\u044f \u043a\u043e\u043f\u0438\u044f — \u044d\u043a\u0441\u043f\u043e\u0440\u0442
+    document.getElementById('profile-btn-export')
+        ?.addEventListener('click', async () => {
+            const allData = await loadFromDB('main_save');
+            const dataToExport = allData || { playerData, activities, books, oneTimeQuests, unlockedAchievements };
+            const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `l1fe_v2_save_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        });
+
+    // \u0420\u0435\u0437\u0435\u0440\u0432\u043d\u0430\u044f \u043a\u043e\u043f\u0438\u044f — \u0438\u043c\u043f\u043e\u0440\u0442
+    const profileImportFile = document.getElementById('profile-import-file');
+    if (profileImportFile) {
+        profileImportFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    const importedData = JSON.parse(ev.target.result);
+                    if (!importedData.playerData) throw new Error('\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442.');
+                    await saveToDB('main_save', importedData);
+                    alert('\u0421\u0435\u0439\u0432 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d! \u0421\u0442\u0440\u0430\u043d\u0438\u0446\u0430 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0441\u044f.');
+                    location.reload();
+                } catch (err) {
+                    alert('\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0447\u0442\u0435\u043d\u0438\u0438 \u0444\u0430\u0439\u043b\u0430. \u0412\u043e\u0437\u043c\u043e\u0436\u043d\u043e, \u0444\u0430\u0439\u043b \u043f\u043e\u0432\u0440\u0435\u0436\u0434\u0451\u043d.');
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    // \u041e\u0442\u0440\u0438\u0441\u043e\u0432\u043a\u0430 \u0441\u043b\u043e\u0442\u043e\u0432 \u043f\u0440\u0438 \u043f\u0435\u0440\u0435\u0445\u043e\u0434\u0435 \u043d\u0430 \u0432\u043a\u043b\u0430\u0434\u043a\u0443
+    document.getElementById('tab-profile')
+        ?.addEventListener('click', renderProfileSlots);
+
+    renderProfileSlots();
+}
+
+// --- \u0421\u0418\u0421\u0422\u0415\u041c\u0410 \u0414\u041e\u0421\u0422\u0418\u0416\u0415\u041d\u0418\u0419 (\u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0435\u043d\u043e \u0432 data.js) ---
+
+function getQuestCompletedCount(questId, history) {
+  const quest = activities.find(a => a.id === questId);
+  if (!quest || !quest.history) return 0;
+  return Object.values(quest.history).filter(v => v === 'completed').length;
+}
+
+function getQuestStreak(questId, history) {
+  const quest = activities.find(a => a.id === questId);
+  if (!quest || !quest.history) return 0;
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    if (quest.history[dateStr] === 'completed') streak++;
+    else break;
+  }
+  return streak;
+}
+
+function getZeroMissedStreak(history, days) {
+  const today = new Date();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const anyMissed = activities.some(a => a.history && a.history[dateStr] === 'missed');
+    if (anyMissed) return false;
+  }
+  return true;
+}
+
+function checkAchievements() {
+  const state = {
+    playerData,
+    books,
+    totalCompleted: activities
+      .flatMap(a => Object.values(a.history || {}))
+      .filter(v => v === 'completed').length,
+    history: null // не используется напрямую
+  };
+
+  ACHIEVEMENTS_DATA.forEach(ach => {
+    if (!unlockedAchievements[ach.id] && ach.condition(state)) {
+      unlockedAchievements[ach.id] = true;
+      playerData.xp += ach.xpReward;
+      
+      // Проверка повышения уровня
+      if (playerData.xp >= playerData.xpToNextLevel) {
+          playerData.level++;
+          playerData.xp -= playerData.xpToNextLevel;
+          playerData.xpToNextLevel = playerData.level * 100;
+          playerData.maxHp += 20;
+          playerData.hp = playerData.maxHp;
+          console.log(`Новый уровень! УР. ${playerData.level}`);
+      }
+      
+      saveGameData();
+      showAchievementToast(ach);
+      renderAchievements();
+      updateUI();
+      console.log(`🏆 Достижение разблокировано: "${ach.name}"`);
+    }
+  });
+}
+
+function showAchievementToast(ach) {
+  const toast     = document.getElementById('achievement-toast');
+  const nameEl    = document.getElementById('toast-achievement-name');
+  const descEl    = document.getElementById('toast-achievement-desc');
+  const rewardEl  = document.getElementById('toast-achievement-reward');
+
+  if (!toast) return;
+  nameEl.textContent   = `${ach.icon} ${ach.name}`;
+  descEl.textContent   = ach.desc;
+  rewardEl.textContent = `+${ach.xpReward} XP`;
+
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 4000);
+}
+
+function renderAchievements() {
+  const container = document.getElementById('achievements-list-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  ACHIEVEMENTS_DATA.forEach(ach => {
+    const unlocked = !!unlockedAchievements[ach.id];
+    const el = document.createElement('div');
+    el.className = 'achievement-item pixel-border' + (unlocked ? ' unlocked' : ' locked');
+    el.innerHTML = `
+      <span class="ach-icon">${unlocked ? ach.icon : '🔒'}</span>
+      <div class="ach-details">
+        <span class="ach-name">${unlocked ? ach.name : '???'}</span>
+        <span class="ach-desc">${unlocked ? ach.desc : 'Условие не раскрыто'}</span>
+        <span class="ach-reward">+${ach.xpReward} XP</span>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+}

@@ -713,48 +713,62 @@ body {
 .achievement-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px;
-    background-color: rgba(0,0,0,0.1);
-    border: 2px solid var(--color-border);
+    gap: 10px;
+    padding: 8px;
+    margin-bottom: 6px;
+    transition: all 0.3s ease;
+}
+
+.achievement-item.locked {
+    opacity: 0.5;
+    filter: grayscale(100%);
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: #333;
+    box-shadow: inset 2px 2px 0px #222, inset -2px -2px 0px #111;
 }
 
 .achievement-item.unlocked {
-    border-color: var(--color-xp-light);
-    background-color: rgba(230, 126, 34, 0.05);
+    border-color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
+    box-shadow: 
+        0 0 8px rgba(46, 204, 113, 0.4),
+        inset -3px -3px 0px 0px rgba(20, 90, 50, 0.8),
+        inset 3px 3px 0px 0px rgba(88, 214, 141, 0.8);
 }
 
-.achievement-icon {
-    font-size: 14px;
-    opacity: 0.2;
-    filter: grayscale(1);
+.ach-icon {
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
 }
 
-.achievement-item.unlocked .achievement-icon {
-    opacity: 1;
-    filter: none;
+.achievement-item.unlocked .ach-icon {
     animation: float-small 2s infinite ease-in-out;
 }
 
-.achievement-info {
+.ach-details {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     flex-grow: 1;
 }
 
-.ach-title {
-    font-size: 7px;
+.ach-name {
+    font-size: 8px;
     font-weight: bold;
-    color: #666;
+    color: #888;
 }
 
-.achievement-item.unlocked .ach-title {
+.achievement-item.unlocked .ach-name {
     color: #fff;
+    text-shadow: 1px 1px 0 #000;
 }
 
 .ach-desc {
-    font-size: 5px;
+    font-size: 6px;
     color: var(--color-text-dark);
 }
 
@@ -764,11 +778,13 @@ body {
 
 .ach-reward {
     font-size: 6px;
-    color: #666;
+    color: #555;
+    margin-top: 2px;
 }
 
 .achievement-item.unlocked .ach-reward {
     color: var(--color-xp-light);
+    font-weight: bold;
 }
 
 .history-item {
@@ -1145,4 +1161,104 @@ body {
     font-size: 8px;
     color: #555;
     font-family: var(--font-pixel);
+}
+
+/* --- ПРОФИЛЬ --- */
+.profile-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px;
+}
+.profile-section {
+    padding: 14px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 4px;
+}
+.profile-section-title {
+    font-size: 8px;
+    color: var(--color-text);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+.profile-hint {
+    font-size: 7px;
+    color: var(--color-text-dark);
+    font-family: monospace;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+.profile-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.profile-btn {
+    font-size: 7px !important;
+    padding: 6px 10px !important;
+    flex: 1;
+}
+/* Слоты сохранения */
+.profile-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.profile-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(0,0,0,0.2);
+    border: 1px dashed rgba(232,208,167,0.2);
+    border-radius: 3px;
+}
+.profile-slot-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.profile-slot-name {
+    font-size: 7px;
+    color: var(--color-text);
+}
+.profile-slot-meta {
+    font-size: 6px;
+    color: var(--color-text-dark);
+    font-family: monospace;
+}
+.profile-slot-empty {
+    font-size: 7px;
+    color: var(--color-text-dark);
+    font-family: monospace;
+}
+.slot-btn {
+    font-size: 6px !important;
+    padding: 4px 7px !important;
+}
+.slot-btn-danger {
+    background: rgba(150, 45, 34, 0.3) !important;
+    border-color: #962d22 !important;
+    color: #e74c3c !important;
+}
+/* Опасная зона */
+.danger-zone {
+    border-color: rgba(150, 45, 34, 0.5) !important;
+    background: rgba(150, 45, 34, 0.08) !important;
+}
+.danger-zone .profile-section-title {
+    color: #e74c3c;
+}
+.reset-btn {
+    background: rgba(150, 45, 34, 0.3) !important;
+    border-color: #962d22 !important;
+    color: #ff6b6b !important;
+    font-size: 8px !important;
+    width: 100%;
+    padding: 10px !important;
+    letter-spacing: 1px;
+}
+.reset-btn:hover {
+    background: rgba(150, 45, 34, 0.6) !important;
 }
